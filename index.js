@@ -1,8 +1,6 @@
-// PAAAAAAAAREI EM 10:37
-
 // biblioteca importadas
 const express = require('express');
-const { uuid } = require('uuidv4')
+const { uuid, isUuid } = require('uuidv4')
 
 // Aplicação instanciada
 const app = express();
@@ -12,16 +10,41 @@ app.use(express.json());
 // Por nao ter banco de dados ele criou um array para o exercicio
 const projects = [];
 
-// Rotas da aplicação
+// Middlewares
+function logRequests(request, response, next) {
+  const { method, url } = request;
 
+  const logLabel = `[${method.toUpperCase()}] ${url}`;
+
+  console.time(logLabel)
+
+  next(); // Próximo middleware
+
+  console.timeEnd(logLabel);
+}
+
+function validateProjectId(request, response, next) {
+  const {id} = request.params;
+
+  if(!isUuid(id)) {
+    return response.status(400).json({ message: 'Invalid project ID'})
+  }
+  return next();
+}
+
+app.use(logRequests);
+app.use('/projects/:id', validateProjectId);
+
+// ROTAS DA APLICAÇÃO
 // LISTAR
 app.get('/projects', (request, response) => {
-  const { title, owner } = request.query;
+  const { title } = request.query;
+    // Faz um filtro por query params dos projetos consultados;
+  const results = title
+    ? projects.filter(project => project.title.includes(title))
+    : projects;
 
-  console.log(title);
-  console.log(owner);
-
-  return response.json(projects);
+  return response.json(results);
 });
 
 // INSERIR
